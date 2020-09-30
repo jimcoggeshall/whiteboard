@@ -22,8 +22,6 @@ RUN npm run build
 FROM node:12-alpine
 ENV NODE_ENV=prod
 
-MAINTAINER cracker0dks
-
 # Create app directory
 RUN mkdir -p /opt/app
 WORKDIR /opt/app
