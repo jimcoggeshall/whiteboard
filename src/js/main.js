@@ -142,12 +142,6 @@ function showBasicAlert(html, newOptions) {
 
 function initWhiteboard() {
     $(document).ready(function () {
-        // by default set in readOnly mode
-        ReadOnlyService.activateReadOnlyMode();
-
-        if (urlParams.get("webdav") === "true") {
-            $("#uploadWebDavBtn").show();
-        }
 
         whiteboard.loadWhiteboard("#whiteboardContainer", {
             //Load the whiteboard
@@ -186,60 +180,6 @@ function initWhiteboard() {
 
         var tempLineTool = false;
         var strgPressed = false;
-        //Handle key actions
-        $(document).on("keydown", function (e) {
-            if (e.which == 16) {
-                if (whiteboard.tool == "pen" && !strgPressed) {
-                    tempLineTool = true;
-                    whiteboard.ownCursor.hide();
-                    if (whiteboard.drawFlag) {
-                        whiteboard.mouseup({
-                            offsetX: whiteboard.prevPos.x,
-                            offsetY: whiteboard.prevPos.y,
-                        });
-                        shortcutFunctions.setTool_line();
-                        whiteboard.mousedown({
-                            offsetX: whiteboard.prevPos.x,
-                            offsetY: whiteboard.prevPos.y,
-                        });
-                    } else {
-                        shortcutFunctions.setTool_line();
-                    }
-                }
-                whiteboard.pressedKeys["shift"] = true; //Used for straight lines...
-            } else if (e.which == 17) {
-                strgPressed = true;
-            }
-            //console.log(e.which);
-        });
-        $(document).on("keyup", function (e) {
-            if (e.which == 16) {
-                if (tempLineTool) {
-                    tempLineTool = false;
-                    shortcutFunctions.setTool_pen();
-                    whiteboard.ownCursor.show();
-                }
-                whiteboard.pressedKeys["shift"] = false;
-            } else if (e.which == 17) {
-                strgPressed = false;
-            }
-        });
-
-        //Load keybindings from keybinds.js to given functions
-        Object.entries(keybinds).forEach(([key, functionName]) => {
-            const associatedShortcutFunction = shortcutFunctions[functionName];
-            if (associatedShortcutFunction) {
-                keymage(key, associatedShortcutFunction, { preventDefault: true });
-            } else {
-                console.error(
-                    "Function you want to keybind on key:",
-                    key,
-                    "named:",
-                    functionName,
-                    "is not available!"
-                );
-            }
-        });
 
         // whiteboard clear button
         $("#whiteboardTrashBtn")
@@ -276,20 +216,6 @@ function initWhiteboard() {
                 whiteboard.redoWhiteboardClick();
             });
 
-        // view only
-        $("#whiteboardLockBtn")
-            .off("click")
-            .click(() => {
-                ReadOnlyService.deactivateReadOnlyMode();
-            });
-        $("#whiteboardUnlockBtn")
-            .off("click")
-            .click(() => {
-                ReadOnlyService.activateReadOnlyMode();
-            });
-        $("#whiteboardUnlockBtn").hide();
-        $("#whiteboardLockBtn").show();
-
         // switch tool
         $(".whiteboard-tool")
             .off("click")
@@ -313,222 +239,6 @@ function initWhiteboard() {
                 showBasicAlert("Please drag the image into the browser.");
             });
 
-        // save image as imgae
-        $("#saveAsImageBtn")
-            .off("click")
-            .click(function () {
-                whiteboard.getImageDataBase64(
-                    {
-                        imageFormat: ConfigService.imageDownloadFormat,
-                        drawBackgroundGrid: ConfigService.drawBackgroundGrid,
-                    },
-                    function (imgData) {
-                        var w = window.open("about:blank"); //Firefox will not allow downloads without extra window
-                        setTimeout(function () {
-                            //FireFox seems to require a setTimeout for this to work.
-                            var a = document.createElement("a");
-                            a.href = imgData;
-                            a.download = "whiteboard." + ConfigService.imageDownloadFormat;
-                            w.document.body.appendChild(a);
-                            a.click();
-                            w.document.body.removeChild(a);
-                            setTimeout(function () {
-                                w.close();
-                            }, 100);
-                        }, 0);
-                    }
-                );
-            });
-
-        // save image to json containing steps
-        $("#saveAsJSONBtn")
-            .off("click")
-            .click(function () {
-                var imgData = whiteboard.getImageDataJson();
-
-                var w = window.open("about:blank"); //Firefox will not allow downloads without extra window
-                setTimeout(function () {
-                    //FireFox seems to require a setTimeout for this to work.
-                    var a = document.createElement("a");
-                    a.href = window.URL.createObjectURL(new Blob([imgData], { type: "text/json" }));
-                    a.download = "whiteboard.json";
-                    w.document.body.appendChild(a);
-                    a.click();
-                    w.document.body.removeChild(a);
-                    setTimeout(function () {
-                        w.close();
-                    }, 100);
-                }, 0);
-            });
-
-        $("#uploadWebDavBtn")
-            .off("click")
-            .click(function () {
-                if ($(".webdavUploadBtn").length > 0) {
-                    return;
-                }
-
-                var webdavserver = localStorage.getItem("webdavserver") || "";
-                var webdavpath = localStorage.getItem("webdavpath") || "/";
-                var webdavusername = localStorage.getItem("webdavusername") || "";
-                var webdavpassword = localStorage.getItem("webdavpassword") || "";
-                var webDavHtml = $(
-                    "<div>" +
-                        "<table>" +
-                        "<tr>" +
-                        "<td>Server URL:</td>" +
-                        '<td><input class="webdavserver" type="text" value="' +
-                        webdavserver +
-                        '" placeholder="https://yourserver.com/remote.php/webdav/"></td>' +
-                        "<td></td>" +
-                        "</tr>" +
-                        "<tr>" +
-                        "<td>Path:</td>" +
-                        '<td><input class="webdavpath" type="text" placeholder="folder" value="' +
-                        webdavpath +
-                        '"></td>' +
-                        '<td style="font-size: 0.7em;"><i>path always have to start & end with "/"</i></td>' +
-                        "</tr>" +
-                        "<tr>" +
-                        "<td>Username:</td>" +
-                        '<td><input class="webdavusername" type="text" value="' +
-                        webdavusername +
-                        '" placeholder="username"></td>' +
-                        '<td style="font-size: 0.7em;"></td>' +
-                        "</tr>" +
-                        "<tr>" +
-                        "<td>Password:</td>" +
-                        '<td><input class="webdavpassword" type="password" value="' +
-                        webdavpassword +
-                        '" placeholder="password"></td>' +
-                        '<td style="font-size: 0.7em;"></td>' +
-                        "</tr>" +
-                        "<tr>" +
-                        '<td style="font-size: 0.7em;" colspan="3">Note: You have to generate and use app credentials if you have 2 Factor Auth activated on your dav/nextcloud server!</td>' +
-                        "</tr>" +
-                        "<tr>" +
-                        "<td></td>" +
-                        '<td colspan="2"><span class="loadingWebdavText" style="display:none;">Saving to webdav, please wait...</span><button class="modalBtn webdavUploadBtn"><i class="fas fa-upload"></i> Start Upload</button></td>' +
-                        "</tr>" +
-                        "</table>" +
-                        "</div>"
-                );
-                webDavHtml
-                    .find(".webdavUploadBtn")
-                    .off("click")
-                    .click(function () {
-                        var webdavserver = webDavHtml.find(".webdavserver").val();
-                        localStorage.setItem("webdavserver", webdavserver);
-                        var webdavpath = webDavHtml.find(".webdavpath").val();
-                        localStorage.setItem("webdavpath", webdavpath);
-                        var webdavusername = webDavHtml.find(".webdavusername").val();
-                        localStorage.setItem("webdavusername", webdavusername);
-                        var webdavpassword = webDavHtml.find(".webdavpassword").val();
-                        localStorage.setItem("webdavpassword", webdavpassword);
-                        whiteboard.getImageDataBase64(
-                            {
-                                imageFormat: ConfigService.imageDownloadFormat,
-                                drawBackgroundGrid: ConfigService.drawBackgroundGrid,
-                            },
-                            function (base64data) {
-                                var webdavaccess = {
-                                    webdavserver: webdavserver,
-                                    webdavpath: webdavpath,
-                                    webdavusername: webdavusername,
-                                    webdavpassword: webdavpassword,
-                                };
-                                webDavHtml.find(".loadingWebdavText").show();
-                                webDavHtml.find(".webdavUploadBtn").hide();
-                                saveWhiteboardToWebdav(base64data, webdavaccess, function (err) {
-                                    if (err) {
-                                        webDavHtml.find(".loadingWebdavText").hide();
-                                        webDavHtml.find(".webdavUploadBtn").show();
-                                    } else {
-                                        webDavHtml.parents(".basicalert").remove();
-                                    }
-                                });
-                            }
-                        );
-                    });
-                showBasicAlert(webDavHtml, {
-                    header: "Save to Webdav",
-                    okBtnText: "cancel",
-                    headercolor: "#0082c9",
-                });
-                // render newly added icons
-                dom.i2svg();
-            });
-
-        // upload json containing steps
-        $("#uploadJsonBtn")
-            .off("click")
-            .click(function () {
-                $("#myFile").click();
-            });
-
-        $("#shareWhiteboardBtn")
-            .off("click")
-            .click(() => {
-                function urlToClipboard(whiteboardId = null) {
-                    const { protocol, host, pathname, search } = window.location;
-                    const basePath = `${protocol}//${host}${pathname}`;
-                    const getParams = new URLSearchParams(search);
-
-                    // Clear ursername from get parameters
-                    getParams.delete("username");
-
-                    if (whiteboardId) {
-                        // override whiteboardId value in URL
-                        getParams.set("whiteboardid", whiteboardId);
-                    }
-
-                    const url = `${basePath}?${getParams.toString()}`;
-                    $("<textarea/>")
-                        .appendTo("body")
-                        .val(url)
-                        .select()
-                        .each(() => {
-                            document.execCommand("copy");
-                        })
-                        .remove();
-                }
-
-                // UI related
-                // clear message
-                $("#shareWhiteboardDialogMessage").toggleClass("displayNone", true);
-
-                $("#shareWhiteboardDialog").toggleClass("displayNone", false);
-                $("#shareWhiteboardDialogGoBack")
-                    .off("click")
-                    .click(() => {
-                        $("#shareWhiteboardDialog").toggleClass("displayNone", true);
-                    });
-
-                $("#shareWhiteboardDialogCopyReadOnlyLink")
-                    .off("click")
-                    .click(() => {
-                        urlToClipboard(ConfigService.correspondingReadOnlyWid);
-
-                        $("#shareWhiteboardDialogMessage")
-                            .toggleClass("displayNone", false)
-                            .text("Read-only link copied to clipboard ✓");
-                    });
-
-                $("#shareWhiteboardDialogCopyReadWriteLink")
-                    .toggleClass("displayNone", ConfigService.isReadOnly)
-                    .click(() => {
-                        $("#shareWhiteboardDialogMessage")
-                            .toggleClass("displayNone", false)
-                            .text("Read/write link copied to clipboard ✓");
-                        urlToClipboard();
-                    });
-            });
-
-        $("#displayWhiteboardInfoBtn")
-            .off("click")
-            .click(() => {
-                InfoService.toggleDisplayInfo();
-            });
 
         var btnsMini = false;
         $("#minMaxBtn")
@@ -546,21 +256,9 @@ function initWhiteboard() {
                 btnsMini = !btnsMini;
             });
 
-        // load json to whiteboard
-        $("#myFile").on("change", function () {
-            var file = document.getElementById("myFile").files[0];
-            var reader = new FileReader();
-            reader.onload = function (e) {
-                try {
-                    var j = JSON.parse(e.target.result);
-                    whiteboard.loadJsonData(j);
-                } catch (e) {
-                    showBasicAlert("File was not a valid JSON!");
-                }
-            };
-            reader.readAsText(file);
-            $(this).val("");
-        });
+        if (urlParams.get("hidetoolbar") === "true") {
+            $("#toolbar").hide();
+        }
 
         // On thickness slider change
         $("#whiteboardThicknessSlider").on("input", function () {
@@ -807,38 +505,6 @@ function initWhiteboard() {
             },
             error: function (err) {
                 showBasicAlert("Failed to upload frame: " + JSON.stringify(err));
-            },
-        });
-    }
-
-    function saveWhiteboardToWebdav(base64data, webdavaccess, callback) {
-        var date = +new Date();
-        $.ajax({
-            type: "POST",
-            url: document.URL.substr(0, document.URL.lastIndexOf("/")) + "api/upload",
-            data: {
-                imagedata: base64data,
-                whiteboardId: whiteboardId,
-                date: date,
-                at: accessToken,
-                webdavaccess: JSON.stringify(webdavaccess),
-            },
-            success: function (msg) {
-                showBasicAlert("Whiteboard was saved to Webdav!", {
-                    headercolor: "#5c9e5c",
-                });
-                console.log("Image uploaded for webdav!");
-                callback();
-            },
-            error: function (err) {
-                if (err.status == 403) {
-                    showBasicAlert(
-                        "Could not connect to Webdav folder! Please check the credentials and paths and try again!"
-                    );
-                } else {
-                    showBasicAlert("Unknown Webdav error! ", err);
-                }
-                callback(err);
             },
         });
     }
