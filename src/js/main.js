@@ -180,6 +180,61 @@ function initWhiteboard() {
 
         var tempLineTool = false;
         var strgPressed = false;
+        
+        //Handle key actions
+        $(document).on("keydown", function (e) {
+            if (e.which == 16) {
+                if (whiteboard.tool == "pen" && !strgPressed) {
+                    tempLineTool = true;
+                    whiteboard.ownCursor.hide();
+                    if (whiteboard.drawFlag) {
+                        whiteboard.mouseup({
+                            offsetX: whiteboard.prevPos.x,
+                            offsetY: whiteboard.prevPos.y,
+                        });
+                        shortcutFunctions.setTool_line();
+                        whiteboard.mousedown({
+                            offsetX: whiteboard.prevPos.x,
+                            offsetY: whiteboard.prevPos.y,
+                        });
+                    } else {
+                        shortcutFunctions.setTool_line();
+                    }
+                }
+                whiteboard.pressedKeys["shift"] = true; //Used for straight lines...
+            } else if (e.which == 17) {
+                strgPressed = true;
+            }
+            //console.log(e.which);
+        });
+        $(document).on("keyup", function (e) {
+            if (e.which == 16) {
+                if (tempLineTool) {
+                    tempLineTool = false;
+                    shortcutFunctions.setTool_pen();
+                    whiteboard.ownCursor.show();
+                }
+                whiteboard.pressedKeys["shift"] = false;
+            } else if (e.which == 17) {
+                strgPressed = false;
+            }
+        });
+
+        //Load keybindings from keybinds.js to given functions
+        Object.entries(keybinds).forEach(([key, functionName]) => {
+            const associatedShortcutFunction = shortcutFunctions[functionName];
+            if (associatedShortcutFunction) {
+                keymage(key, associatedShortcutFunction, { preventDefault: true });
+            } else {
+                console.error(
+                    "Function you want to keybind on key:",
+                    key,
+                    "named:",
+                    functionName,
+                    "is not available!"
+                );
+            }
+        });
 
         // whiteboard clear button
         $("#whiteboardTrashBtn")
