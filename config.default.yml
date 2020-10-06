@@ -23,7 +23,7 @@ frontend:
     displayInfo: false
 
   # Show the smallest screen indicator ? (with dotted lines) -- boolean
-  showSmallestScreenIndicator: true
+  showSmallestScreenIndicator: false
 
   # Image download format, can be "png", "jpeg" (or "webp" -> only working on chrome) -- string
   imageDownloadFormat: "png"
